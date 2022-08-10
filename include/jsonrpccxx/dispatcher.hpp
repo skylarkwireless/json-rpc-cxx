@@ -16,26 +16,37 @@ namespace jsonrpccxx {
     Dispatcher() :
       methods(),
       notifications(),
+      docstrings(),
       mapping() {}
 
-    bool Add(const std::string &name, MethodHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
+    bool Add(const std::string &name, const std::string &docstring, MethodHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
       if (Contains(name))
         return false;
       methods[name] = std::move(callback);
+      docstrings[name] = docstring;
       if (!mapping.empty()) {
         this->mapping[name] = mapping;
       }
       return true;
     }
 
-    bool Add(const std::string &name, NotificationHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
+    inline bool Add(const std::string &name, MethodHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
+      return this->Add(name, "", callback, mapping);
+    }
+
+    bool Add(const std::string &name, const std::string &docstring, NotificationHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
       if (Contains(name))
         return false;
       notifications[name] = std::move(callback);
+      docstrings[name] = docstring;
       if (!mapping.empty()) {
         this->mapping[name] = mapping;
       }
       return true;
+    }
+
+    inline bool Add(const std::string &name, NotificationHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
+      return this->Add(name, "", callback, mapping);
     }
 
     inline bool ContainsMethod(const std::string &name) const { return (methods.find(name) != methods.end()); }
@@ -67,6 +78,13 @@ namespace jsonrpccxx {
         names.push_back(mapPair.first);
       }
       return names;
+    }
+
+    std::string MethodDocstring(const std::string &name) const {
+      if (docstrings.count(name) > 0) {
+          return docstrings.at(name);
+      }
+      return {};
     }
 
     NamedParamMapping MethodParamNames(const std::string &name) const {
@@ -120,6 +138,7 @@ namespace jsonrpccxx {
   private:
     std::map<std::string, MethodHandle> methods;
     std::map<std::string, NotificationHandle> notifications;
+    std::map<std::string, std::string> docstrings;
     std::map<std::string, NamedParamMapping> mapping;
 
     inline json normalize_parameter(const std::string &name, const json &params) {

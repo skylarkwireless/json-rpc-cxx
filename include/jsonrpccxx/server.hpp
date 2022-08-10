@@ -17,10 +17,21 @@ namespace jsonrpccxx {
         return false;
       return dispatcher.Add(name, callback, mapping);
     }
+    bool Add(const std::string &name, const std::string &docstring, MethodHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
+      if (name.rfind("rpc.", 0) == 0)
+        return false;
+      return dispatcher.Add(name, docstring, callback, mapping);
+    }
+
     bool Add(const std::string &name, NotificationHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
       if (name.rfind("rpc.", 0) == 0)
         return false;
       return dispatcher.Add(name, callback, mapping);
+    }
+    bool Add(const std::string &name, const std::string &docstring, NotificationHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
+      if (name.rfind("rpc.", 0) == 0)
+        return false;
+      return dispatcher.Add(name, docstring, callback, mapping);
     }
 
     bool ContainsMethod(const std::string &name) {
@@ -52,8 +63,12 @@ namespace jsonrpccxx {
         return dispatcher.NotificationNames();
     }
 
-    inline std::vector<std::string> MethodParamNames(const std::string &method_name) const {
-        return dispatcher.MethodParamNames(method_name);
+    inline std::string MethodDocstring(const std::string &name) const {
+        return dispatcher.MethodDocstring(name);
+    }
+
+    inline std::vector<std::string> MethodParamNames(const std::string &name) const {
+        return dispatcher.MethodParamNames(name);
     }
 
   protected:
