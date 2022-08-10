@@ -69,6 +69,13 @@ namespace jsonrpccxx {
       return names;
     }
 
+    NamedParamMapping MethodParamNames(const std::string &name) const {
+      if (mapping.count(name) > 0) {
+          return mapping.at(name);
+      }
+      return {};
+    }
+
     JsonRpcException process_type_error(const std::string &name, JsonRpcException &e) {
       if (e.Code() == -32602 && !e.Data().empty()) {
         std::string message = e.Message() + " for parameter ";

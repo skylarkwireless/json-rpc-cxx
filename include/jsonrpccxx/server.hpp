@@ -52,6 +52,10 @@ namespace jsonrpccxx {
         return dispatcher.NotificationNames();
     }
 
+    inline std::vector<std::string> MethodParamNames(const std::string &method_name) const {
+        return dispatcher.MethodParamNames(method_name);
+    }
+
   protected:
     Dispatcher dispatcher;
   };
