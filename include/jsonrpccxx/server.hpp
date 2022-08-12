@@ -80,9 +80,7 @@ namespace jsonrpccxx {
     JsonRpc2Server() = default;
     ~JsonRpc2Server() override = default;
 
-    std::string HandleRequest(const std::string &requestString) override {
-      try {
-        json request = json::parse(requestString);
+    std::string HandleRequest(json &request) {
         if (request.is_array()) {
           json result = json::array();
           for (json &r : request) {
@@ -102,6 +100,12 @@ namespace jsonrpccxx {
         } else {
           return json{{"id", nullptr}, {"error", {{"code", invalid_request}, {"message", "invalid request: expected array or object"}}}, {"jsonrpc", "2.0"}}.dump();
         }
+    }
+
+    std::string HandleRequest(const std::string &requestString) override {
+      try {
+        json request = json::parse(requestString);
+        return HandleRequest(request);
       } catch (json::parse_error &e) {
         return json{{"id", nullptr}, {"error", {{"code", parse_error}, {"message", std::string("parse error: ") + e.what()}}}, {"jsonrpc", "2.0"}}.dump();
       }
