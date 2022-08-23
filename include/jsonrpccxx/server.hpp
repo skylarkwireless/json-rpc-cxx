@@ -3,6 +3,7 @@
 #include "common.hpp"
 #include "dispatcher.hpp"
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace jsonrpccxx {
@@ -21,6 +22,37 @@ namespace jsonrpccxx {
       if (name.rfind("rpc.", 0) == 0)
         return false;
       return dispatcher.Add(name, docstring, callback, mapping);
+    }
+
+    template <typename Func>
+    inline bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      Func method,
+      const NamedParamMapping args = NAMED_PARAM_MAPPING,
+      const NamedParamMapping argDocstrings = NAMED_PARAM_MAPPING)
+    {
+      static_assert(not std::is_same<Func, MethodHandle>::value, "This overload specifically needs *not* a handle.");
+
+      if (name.find("rpc.", 0) == 0)
+        return false;
+
+      return dispatcher.Add(name, docstring, std::forward<decltype(method)>(method), args, argDocstrings);
+    }
+
+    template <typename Class, typename ReturnType, typename... ParamTypes>
+    inline bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      ReturnType (Class::*cb)(ParamTypes...),
+      Class *cls,
+      const NamedParamMapping args = NAMED_PARAM_MAPPING,
+      const NamedParamMapping argDocstrings = NAMED_PARAM_MAPPING)
+    {
+      if (name.find("rpc.", 0) == 0)
+        return false;
+
+      return dispatcher.Add(name, docstring, cb, cls, args, argDocstrings);
     }
 
     bool Add(const std::string &name, NotificationHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
@@ -57,18 +89,26 @@ namespace jsonrpccxx {
     }
 
     inline std::vector<std::string> MethodNames() const {
-        return dispatcher.MethodNames();
+      return dispatcher.MethodNames();
     }
     inline std::vector<std::string> NotificationNames() const {
-        return dispatcher.NotificationNames();
+      return dispatcher.NotificationNames();
     }
 
     inline std::string MethodDocstring(const std::string &name) const {
-        return dispatcher.MethodDocstring(name);
+      return dispatcher.MethodDocstring(name);
     }
 
     inline std::vector<std::string> MethodParamNames(const std::string &name) const {
-        return dispatcher.MethodParamNames(name);
+      return dispatcher.MethodParamNames(name);
+    }
+
+    inline std::vector<std::string> MethodParamTypes(const std::string &name) const {
+      return dispatcher.MethodParamTypes(name);
+    }
+
+    inline std::vector<std::string> MethodParamDocstrings(const std::string &name) const {
+      return dispatcher.MethodParamDocstrings(name);
     }
 
   protected:

@@ -2,14 +2,12 @@
 
 #include "common.hpp"
 #include "typemapper.hpp"
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
 
 namespace jsonrpccxx {
-
-  typedef std::vector<std::string> NamedParamMapping;
-  static NamedParamMapping NAMED_PARAM_MAPPING;
 
   class Dispatcher {
   public:
@@ -17,7 +15,10 @@ namespace jsonrpccxx {
       methods(),
       notifications(),
       docstrings(),
-      mapping() {}
+      mapping(),
+      paramTypes(),
+      paramDocstrings()
+    {}
 
     bool Add(const std::string &name, const std::string &docstring, MethodHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
       if (Contains(name))
@@ -47,6 +48,73 @@ namespace jsonrpccxx {
 
     inline bool Add(const std::string &name, NotificationHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
       return this->Add(name, "", callback, mapping);
+    }
+
+    template <typename ReturnType, typename... ParamTypes>
+    bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      std::function<ReturnType(ParamTypes...)> method,
+      const NamedParamMapping &args = NAMED_PARAM_MAPPING,
+      const NamedParamMapping &argDocstrings = NAMED_PARAM_MAPPING)
+    {
+      if (Contains(name))
+        return false;
+
+      if((args.size() != argDocstrings.size()) and not argDocstrings.empty())
+        throw std::invalid_argument("Number of parameters must match number of parameter docstrings, or no docstrings must be provided");
+
+      NamedParamMapping types;
+      auto methodHandle = createMethodHandle(
+        std::forward<decltype(method)>(method),
+        std::index_sequence_for<ParamTypes...>{},
+        types);
+
+      methods[name] = std::move(methodHandle);
+      docstrings[name] = docstring;
+      if(!args.empty()) {
+        mapping[name] = args;
+        paramTypes[name] = std::move(types);
+        paramDocstrings[name] = argDocstrings;
+      }
+
+      return true;
+    }
+
+    template <typename Func>
+    inline bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      Func method,
+      const NamedParamMapping &args = NAMED_PARAM_MAPPING,
+      const NamedParamMapping &argDocstrings = NAMED_PARAM_MAPPING)
+    {
+      return this->Add(
+        name,
+        docstring,
+        std::function(method),
+        args,
+        argDocstrings);
+    }
+
+    template <typename Class, typename ReturnType, typename... ParamTypes>
+    inline bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      ReturnType (Class::*cb)(ParamTypes...),
+      Class *cls,
+      const NamedParamMapping &args = NAMED_PARAM_MAPPING,
+      const NamedParamMapping &argDocstrings = NAMED_PARAM_MAPPING)
+    {
+      return this->Add(
+        name,
+        docstring,
+        [cls, cb](ParamTypes&&... params) -> ReturnType
+        {
+          return std::mem_fn(cb)(cls, params...);
+        },
+        args,
+        argDocstrings);
     }
 
     inline bool ContainsMethod(const std::string &name) const { return (methods.find(name) != methods.end()); }
@@ -90,6 +158,22 @@ namespace jsonrpccxx {
     NamedParamMapping MethodParamNames(const std::string &name) const {
       if (mapping.count(name) > 0) {
           return mapping.at(name);
+      }
+      return {};
+    }
+
+    NamedParamMapping MethodParamTypes(const std::string &name) const {
+      auto paramTypeIter = paramTypes.find(name);
+      if (paramTypeIter != paramTypes.end()) {
+        return paramTypeIter->second;
+      }
+      return {};
+    }
+
+    NamedParamMapping MethodParamDocstrings(const std::string &name) const {
+      auto paramDocstringIter = paramDocstrings.find(name);
+      if (paramDocstringIter != paramDocstrings.end()) {
+        return paramDocstringIter->second;
       }
       return {};
     }
@@ -140,6 +224,8 @@ namespace jsonrpccxx {
     std::map<std::string, NotificationHandle> notifications;
     std::map<std::string, std::string> docstrings;
     std::map<std::string, NamedParamMapping> mapping;
+    std::map<std::string, NamedParamMapping> paramTypes;
+    std::map<std::string, NamedParamMapping> paramDocstrings;
 
     inline json normalize_parameter(const std::string &name, const json &params) {
       if (params.type() == json::value_t::array) {
