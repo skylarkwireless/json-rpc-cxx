@@ -7,6 +7,8 @@
 using namespace jsonrpccxx;
 using namespace std;
 
+static unsigned int add_function(unsigned int a, unsigned int b) { return a + b; }
+
 struct Server2 {
   JsonRpc2Server server;
   TestServerConnector connector;
@@ -238,4 +240,127 @@ TEST_CASE_FIXTURE(Server2, "v2_check_functions") {
   REQUIRE(server.Remove("dirty_notification"));
   CHECK(server.MethodNames().empty());
   CHECK(server.NotificationNames().empty());
+}
+
+TEST_CASE("checking adding calls without wrapping in a handle") {
+
+  // Raw function pointer
+  {
+    JsonRpc2Server server;
+
+    CHECK(server.Add("add_function", "Add function", add_function, {"a", "b"}, {"A", "B"}));
+    REQUIRE(server.ContainsMethod("add_function"));
+    REQUIRE(server.Contains("add_function"));
+    REQUIRE(server.MethodDocstring("add_function") == "Add function");
+
+    const auto paramNames = server.MethodParamNames("add_function");
+    REQUIRE(paramNames.size() == 2);
+    CHECK(paramNames[0] == "a");
+    CHECK(paramNames[1] == "b");
+
+    const auto paramTypes = server.MethodParamTypes("add_function");
+    REQUIRE(paramTypes.size() == 2);
+    CHECK(paramTypes[0] == "unsigned integer");
+    CHECK(paramTypes[1] == "unsigned integer");
+
+    const auto paramDocstrings = server.MethodParamDocstrings("add_function");
+    REQUIRE(paramDocstrings.size() == 2);
+    CHECK(paramDocstrings[0] == "A");
+    CHECK(paramDocstrings[1] == "B");
+  }
+
+  // Lambda
+  {
+    JsonRpc2Server server;
+
+    auto mismatched_fma = [](int a, float b, unsigned c) -> double
+    {
+      return (double(a) * double(b)) + double(c);
+    };
+
+    CHECK(server.Add("mismatched_fma", "Perform an FMA with different parameter types", mismatched_fma, {"a", "b", "c"}, {"A", "B", "C"}));
+    REQUIRE(server.ContainsMethod("mismatched_fma"));
+    REQUIRE(server.Contains("mismatched_fma"));
+    REQUIRE(server.MethodDocstring("mismatched_fma") == "Perform an FMA with different parameter types");
+
+    const auto paramNames = server.MethodParamNames("mismatched_fma");
+    REQUIRE(paramNames.size() == 3);
+    CHECK(paramNames[0] == "a");
+    CHECK(paramNames[1] == "b");
+    CHECK(paramNames[2] == "c");
+
+    const auto paramTypes = server.MethodParamTypes("mismatched_fma");
+    REQUIRE(paramTypes.size() == 3);
+    CHECK(paramTypes[0] == "integer");
+    CHECK(paramTypes[1] == "float");
+    CHECK(paramTypes[2] == "unsigned integer");
+
+    const auto paramDocstrings = server.MethodParamDocstrings("mismatched_fma");
+    REQUIRE(paramDocstrings.size() == 3);
+    CHECK(paramDocstrings[0] == "A");
+    CHECK(paramDocstrings[1] == "B");
+    CHECK(paramDocstrings[2] == "C");
+  }
+
+  // Class function
+  {
+    class TestClass
+    {
+    public:
+      int value{0};
+
+      int addAndGetValue(int addAmount)
+      {
+        value += addAmount;
+        return value;
+      }
+    };
+
+    JsonRpc2Server server;
+    TestClass cls;
+
+    CHECK(server.Add("class_add_and_get_value", "Add to a class's field and return the new value", &TestClass::addAndGetValue, &cls, {"addAmount"}, {"Add amount"}));
+    REQUIRE(server.ContainsMethod("class_add_and_get_value"));
+    REQUIRE(server.Contains("class_add_and_get_value"));
+    REQUIRE(server.MethodDocstring("class_add_and_get_value") == "Add to a class's field and return the new value");
+
+    const auto paramNames = server.MethodParamNames("class_add_and_get_value");
+    REQUIRE(paramNames.size() == 1);
+    CHECK(paramNames[0] == "addAmount");
+
+    const auto paramTypes = server.MethodParamTypes("class_add_and_get_value");
+    REQUIRE(paramTypes.size() == 1);
+    CHECK(paramTypes[0] == "integer");
+
+    const auto paramDocstrings = server.MethodParamDocstrings("class_add_and_get_value");
+    REQUIRE(paramDocstrings.size() == 1);
+    CHECK(paramDocstrings[0] == "Add amount");
+  }
+
+  // std::function
+  {
+    std::function add_std_function(add_function);
+
+    JsonRpc2Server server;
+
+    CHECK(server.Add("add_std_function", "Add std::function", add_std_function, {"a", "b"}, {"A", "B"}));
+    REQUIRE(server.ContainsMethod("add_std_function"));
+    REQUIRE(server.Contains("add_std_function"));
+    REQUIRE(server.MethodDocstring("add_std_function") == "Add std::function");
+
+    const auto paramNames = server.MethodParamNames("add_std_function");
+    REQUIRE(paramNames.size() == 2);
+    CHECK(paramNames[0] == "a");
+    CHECK(paramNames[1] == "b");
+
+    const auto paramTypes = server.MethodParamTypes("add_std_function");
+    REQUIRE(paramTypes.size() == 2);
+    CHECK(paramTypes[0] == "unsigned integer");
+    CHECK(paramTypes[1] == "unsigned integer");
+
+    const auto paramDocstrings = server.MethodParamDocstrings("add_std_function");
+    REQUIRE(paramDocstrings.size() == 2);
+    CHECK(paramDocstrings[0] == "A");
+    CHECK(paramDocstrings[1] == "B");
+  }
 }

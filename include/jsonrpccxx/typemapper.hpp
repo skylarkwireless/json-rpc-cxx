@@ -4,12 +4,16 @@
 #include "nlohmann/json.hpp"
 #include <functional>
 #include <limits>
+#include <tuple>
 #include <utility>
 #include <vector>
 
 namespace jsonrpccxx {
   typedef std::function<json(const json &)> MethodHandle;
   typedef std::function<void(const json &)> NotificationHandle;
+
+  typedef std::vector<std::string> NamedParamMapping;
+  static NamedParamMapping NAMED_PARAM_MAPPING;
 
   // Workaround due to forbidden partial template function specialisation
   template <typename T>
@@ -89,7 +93,11 @@ namespace jsonrpccxx {
   }
 
   template <typename ReturnType, typename... ParamTypes, std::size_t... index>
-  MethodHandle createMethodHandle(std::function<ReturnType(ParamTypes...)> method, std::index_sequence<index...>) {
+  MethodHandle createMethodHandle(std::function<ReturnType(ParamTypes...)> method, std::index_sequence<index...> seq, NamedParamMapping &types) {
+    (void)seq;
+
+    (types.emplace_back(type_name(GetType(type<std::decay_t<ParamTypes>>()))), ...);
+
     MethodHandle handle = [method](const json &params) -> json {
       size_t actualSize = params.size();
       size_t formalSize = sizeof...(ParamTypes);
@@ -101,6 +109,12 @@ namespace jsonrpccxx {
       return method(params[index].get<typename std::decay<ParamTypes>::type>()...);
     };
     return handle;
+  }
+
+  template <typename ReturnType, typename... ParamTypes, std::size_t... index>
+  inline MethodHandle createMethodHandle(std::function<ReturnType(ParamTypes...)> method, std::index_sequence<index...> seq) {
+    NamedParamMapping _;
+    return createMethodHandle(method, seq, _);
   }
 
   template <typename ReturnType, typename... ParamTypes>
