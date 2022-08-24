@@ -364,3 +364,23 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     CHECK(paramDocstrings[1] == "B");
   }
 }
+
+TEST_CASE("checking mismatched number params when adding calls without wrapping in a handle") {
+    JsonRpc2Server server;
+
+    // Not enough parameters
+    {
+        const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (1) does not match registered method's parameter list (2).)";
+
+        CHECK_THROWS_WITH(server.Add("add_function", "Add function", add_function, {"a"}, {"A"}), expectedMsg);
+        CHECK(not server.ContainsMethod("add_function"));
+    }
+
+    // Too many parameters
+    {
+        const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (3) does not match registered method's parameter list (2).)";
+
+        CHECK_THROWS_WITH(server.Add("add_function", "Add function", add_function, {"a", "b", "c"}, {"A", "B", "C"}), expectedMsg);
+        CHECK(not server.ContainsMethod("add_function"));
+    }
+}

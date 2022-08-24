@@ -5,6 +5,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <sstream>
 #include <vector>
 
 namespace jsonrpccxx {
@@ -60,6 +61,15 @@ namespace jsonrpccxx {
     {
       if (Contains(name))
         return false;
+
+      if (sizeof...(ParamTypes) != args.size()) {
+        std::ostringstream errMsgStream;
+        errMsgStream << "Error registering RPC method \"" << name << "\": number of listed parameters ("
+                     << args.size() << ") does not match registered method's parameter list ("
+                     << sizeof...(ParamTypes) << ").";
+
+        throw std::invalid_argument(errMsgStream.str());
+      }
 
       if((args.size() != argDocstrings.size()) and not argDocstrings.empty())
         throw std::invalid_argument("Number of parameters must match number of parameter docstrings, or no docstrings must be provided");

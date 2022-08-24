@@ -252,4 +252,22 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
   }
 }
 
-// TODO: avoid signed, unsigned bool invocations
+TEST_CASE("checking mismatched number params when adding calls without wrapping in a handle") {
+    Dispatcher d;
+
+    // Not enough parameters
+    {
+        const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (1) does not match registered method's parameter list (2).)";
+
+        CHECK_THROWS_WITH(d.Add("add_function", "Add function", add_function, {"a"}, {"A"}), expectedMsg);
+        CHECK(not d.ContainsMethod("add_function"));
+    }
+
+    // Too many parameters
+    {
+        const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (3) does not match registered method's parameter list (2).)";
+
+        CHECK_THROWS_WITH(d.Add("add_function", "Add function", add_function, {"a", "b", "c"}, {"A", "B", "C"}), expectedMsg);
+        CHECK(not d.ContainsMethod("add_function"));
+    }
+}
