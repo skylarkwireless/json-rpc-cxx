@@ -84,6 +84,39 @@ namespace jsonrpccxx {
       return dispatcher.Add(name, docstring, cb, cls, args);
     }
 
+    // This workaround is necessary to avoid ambiguity between std::vector<std::string> and
+    // std::map<std::string, std::string> when using braced initializer lists.
+    template <typename Func>
+    inline bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      Func func,
+      const std::initializer_list<std::string> &args)
+    {
+      static_assert(not std::is_same<Func, MethodHandle>::value, "This overload specifically needs *not* a handle.");
+
+      if (name.find("rpc.", 0) == 0)
+        return false;
+
+      return dispatcher.Add(name, docstring, func, args);
+    }
+
+    // This workaround is necessary to avoid ambiguity between std::vector<std::string> and
+    // std::map<std::string, std::string> when using braced initializer lists.
+    template <typename Class, typename ReturnType, typename... ParamTypes>
+    inline bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      ReturnType (Class::*cb)(ParamTypes...),
+      Class *cls,
+      const std::initializer_list<std::string> &args)
+    {
+      if (name.find("rpc.", 0) == 0)
+        return false;
+
+      return dispatcher.Add(name, docstring, cb, cls, args);
+    }
+
     bool Add(const std::string &name, NotificationHandle callback, const NamedParamMapping &mapping = NAMED_PARAM_MAPPING) {
       if (name.rfind("rpc.", 0) == 0)
         return false;
