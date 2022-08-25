@@ -127,6 +127,47 @@ namespace jsonrpccxx {
         argDocstrings);
     }
 
+    template <typename Func>
+    bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      Func func,
+      const ParamArgsMap &args)
+    {
+      if (name.find("rpc.", 0) == 0)
+        return false;
+
+      NamedParamMapping argNames{};
+      NamedParamMapping argDocstrings{};
+
+      for (const auto &[arg, doc]: args) {
+        argNames.push_back(arg);
+        argDocstrings.push_back(doc);
+      }
+      return this->Add(name, docstring, std::forward<Func>(func), argNames, argDocstrings);
+    }
+
+    template <typename Class, typename ReturnType, typename... ParamTypes>
+    bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      ReturnType (Class::*cb)(ParamTypes...),
+      Class *cls,
+      const ParamArgsMap &args)
+    {
+      if (name.find("rpc.", 0) == 0)
+        return false;
+
+      NamedParamMapping argNames{};
+      NamedParamMapping argDocstrings{};
+
+      for (const auto &[arg, doc]: args) {
+        argNames.push_back(arg);
+        argDocstrings.push_back(doc);
+      }
+      return this->Add(name, docstring, cb, cls, argNames, argDocstrings);
+    }
+
     inline bool ContainsMethod(const std::string &name) const { return (methods.find(name) != methods.end()); }
 
     inline bool ContainsNotification(const std::string &name) const { return (notifications.find(name) != notifications.end()); }
@@ -232,7 +273,7 @@ namespace jsonrpccxx {
   private:
     std::map<std::string, MethodHandle> methods;
     std::map<std::string, NotificationHandle> notifications;
-    std::map<std::string, std::string> docstrings;
+    ParamArgsMap docstrings;
     std::map<std::string, NamedParamMapping> mapping;
     std::map<std::string, NamedParamMapping> paramTypes;
     std::map<std::string, NamedParamMapping> paramDocstrings;

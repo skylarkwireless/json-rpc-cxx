@@ -4,6 +4,7 @@
 #include "nlohmann/json.hpp"
 #include <functional>
 #include <limits>
+#include <map>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -14,6 +15,8 @@ namespace jsonrpccxx {
 
   typedef std::vector<std::string> NamedParamMapping;
   static NamedParamMapping NAMED_PARAM_MAPPING;
+
+  typedef std::map<std::string, std::string> ParamArgsMap;
 
   // Workaround due to forbidden partial template function specialisation
   template <typename T>

@@ -248,7 +248,11 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
   {
     JsonRpc2Server server;
 
-    CHECK(server.Add("add_function", "Add function", add_function, {"a", "b"}, {"A", "B"}));
+    CHECK(server.Add(
+        "add_function",
+        "Add function",
+        add_function,
+        ParamArgsMap{{"a", "A"}, {"b", "B"}}));
     REQUIRE(server.ContainsMethod("add_function"));
     REQUIRE(server.Contains("add_function"));
     REQUIRE(server.MethodDocstring("add_function") == "Add function");
@@ -319,7 +323,12 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     JsonRpc2Server server;
     TestClass cls;
 
-    CHECK(server.Add("class_add_and_get_value", "Add to a class's field and return the new value", &TestClass::addAndGetValue, &cls, {"addAmount"}, {"Add amount"}));
+    CHECK(server.Add(
+      "class_add_and_get_value",
+      "Add to a class's field and return the new value",
+      &TestClass::addAndGetValue,
+      &cls,
+      ParamArgsMap{{"addAmount", "Add amount"}}));
     REQUIRE(server.ContainsMethod("class_add_and_get_value"));
     REQUIRE(server.Contains("class_add_and_get_value"));
     REQUIRE(server.MethodDocstring("class_add_and_get_value") == "Add to a class's field and return the new value");
@@ -366,21 +375,21 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
 }
 
 TEST_CASE("checking mismatched number params when adding calls without wrapping in a handle") {
-    JsonRpc2Server server;
+  JsonRpc2Server server;
 
-    // Not enough parameters
-    {
-        const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (1) does not match registered method's parameter list (2).)";
+  // Not enough parameters
+  {
+    const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (1) does not match registered method's parameter list (2).)";
 
-        CHECK_THROWS_WITH(server.Add("add_function", "Add function", add_function, {"a"}, {"A"}), expectedMsg);
-        CHECK(not server.ContainsMethod("add_function"));
-    }
+    CHECK_THROWS_WITH(server.Add("add_function", "Add function", add_function, {"a"}, {"A"}), expectedMsg);
+    CHECK(not server.ContainsMethod("add_function"));
+  }
 
-    // Too many parameters
-    {
-        const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (3) does not match registered method's parameter list (2).)";
+  // Too many parameters
+  {
+    const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (3) does not match registered method's parameter list (2).)";
 
-        CHECK_THROWS_WITH(server.Add("add_function", "Add function", add_function, {"a", "b", "c"}, {"A", "B", "C"}), expectedMsg);
-        CHECK(not server.ContainsMethod("add_function"));
-    }
+    CHECK_THROWS_WITH(server.Add("add_function", "Add function", add_function, {"a", "b", "c"}, {"A", "B", "C"}), expectedMsg);
+    CHECK(not server.ContainsMethod("add_function"));
+  }
 }
