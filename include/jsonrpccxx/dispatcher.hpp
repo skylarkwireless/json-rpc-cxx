@@ -3,6 +3,7 @@
 #include "common.hpp"
 #include "typemapper.hpp"
 #include <functional>
+#include <initializer_list>
 #include <map>
 #include <string>
 #include <sstream>
@@ -166,6 +167,31 @@ namespace jsonrpccxx {
         argDocstrings.push_back(doc);
       }
       return this->Add(name, docstring, cb, cls, argNames, argDocstrings);
+    }
+
+    // This workaround is necessary to avoid ambiguity between std::vector<std::string> and
+    // std::map<std::string, std::string> when using braced initializer lists.
+    template <typename Func>
+    inline bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      Func func,
+      const std::initializer_list<std::string> &args)
+    {
+      return this->Add(name, docstring, std::forward<Func>(func), NamedParamMapping(args));
+    }
+
+    // This workaround is necessary to avoid ambiguity between std::vector<std::string> and
+    // std::map<std::string, std::string> when using braced initializer lists.
+    template <typename Class, typename ReturnType, typename... ParamTypes>
+    inline bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      ReturnType (Class::*cb)(ParamTypes...),
+      Class *cls,
+      const std::initializer_list<std::string> &args)
+    {
+      return this->Add(name, docstring, cb, cls, NamedParamMapping(args));
     }
 
     inline bool ContainsMethod(const std::string &name) const { return (methods.find(name) != methods.end()); }

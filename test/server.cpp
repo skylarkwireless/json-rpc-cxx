@@ -393,3 +393,21 @@ TEST_CASE("checking mismatched number params when adding calls without wrapping 
     CHECK(not server.ContainsMethod("add_function"));
   }
 }
+
+TEST_CASE("checking adding two-parameter method without a handle and without arg docstrings") {
+  JsonRpc2Server server;
+
+  class TestClass
+  {
+  public:
+    int add(int lhs, int rhs)
+    {
+      return lhs + rhs;
+    }
+  };
+
+  CHECK(server.Add("add_function", "Add function", add_function, {"a", "b"}));
+
+  TestClass cls;
+  CHECK(server.Add("class_add", "Class Add", &TestClass::add, &cls, {"lhs", "rhs"}));
+}

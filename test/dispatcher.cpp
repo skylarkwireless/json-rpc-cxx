@@ -275,3 +275,23 @@ TEST_CASE("checking mismatched number params when adding calls without wrapping 
     CHECK(not d.ContainsMethod("add_function"));
   }
 }
+
+TEST_CASE("checking adding two-parameter method without a handle and without arg docstrings") {
+  Dispatcher d;
+
+  class TestClass
+  {
+  public:
+    int add(int lhs, int rhs)
+    {
+      return lhs + rhs;
+    }
+  };
+
+  CHECK(d.Add("add_function", "Add function", add_function, {"a", "b"}));
+  CHECK(d.InvokeMethod("add_function", {1, 2}) == 3);
+
+  TestClass cls;
+  CHECK(d.Add("class_add", "Class Add", &TestClass::add, &cls, {"lhs", "rhs"}));
+  CHECK(d.InvokeMethod("class_add", {1, 2}) == 3);
+}
