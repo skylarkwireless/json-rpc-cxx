@@ -159,7 +159,11 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
       return (double(a) * double(b)) + double(c);
     };
 
-    CHECK(d.Add("mismatched_fma", "Perform an FMA with different parameter types", mismatched_fma, {"a", "b", "c"}, {"A", "B", "C"}));
+    CHECK(d.Add(
+      "mismatched_fma",
+      "Perform an FMA with different parameter types",
+      mismatched_fma,
+      ParamArgsMap{{"a", "A"}, {"b", "B"}, {"c", "C"}}));
     REQUIRE(d.ContainsMethod("mismatched_fma"));
     REQUIRE(d.Contains("mismatched_fma"));
     REQUIRE(d.InvokeMethod("mismatched_fma", {5, 10.0f, 20}) == 70.0);
@@ -229,7 +233,7 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
 
     Dispatcher d;
 
-    CHECK(d.Add("add_std_function", "Add std::function", add_std_function, {"a", "b"}, {"A", "B"}));
+    CHECK(d.Add("add_std_function", "Add std::function", add_std_function, ParamArgsMap{{"a", "A"}, {"b", "B"}}));
     REQUIRE(d.ContainsMethod("add_std_function"));
     REQUIRE(d.Contains("add_std_function"));
     REQUIRE(d.InvokeMethod("add_std_function", {5, 10}) == 15);
@@ -253,21 +257,21 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
 }
 
 TEST_CASE("checking mismatched number params when adding calls without wrapping in a handle") {
-    Dispatcher d;
+  Dispatcher d;
 
-    // Not enough parameters
-    {
-        const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (1) does not match registered method's parameter list (2).)";
+  // Not enough parameters
+  {
+    const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (1) does not match registered method's parameter list (2).)";
 
-        CHECK_THROWS_WITH(d.Add("add_function", "Add function", add_function, {"a"}, {"A"}), expectedMsg);
-        CHECK(not d.ContainsMethod("add_function"));
-    }
+    CHECK_THROWS_WITH(d.Add("add_function", "Add function", add_function, {"a"}, {"A"}), expectedMsg);
+    CHECK(not d.ContainsMethod("add_function"));
+  }
 
-    // Too many parameters
-    {
-        const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (3) does not match registered method's parameter list (2).)";
+  // Too many parameters
+  {
+    const auto expectedMsg = R"(Error registering RPC method "add_function": number of listed parameters (3) does not match registered method's parameter list (2).)";
 
-        CHECK_THROWS_WITH(d.Add("add_function", "Add function", add_function, {"a", "b", "c"}, {"A", "B", "C"}), expectedMsg);
-        CHECK(not d.ContainsMethod("add_function"));
-    }
+    CHECK_THROWS_WITH(d.Add("add_function", "Add function", add_function, {"a", "b", "c"}, {"A", "B", "C"}), expectedMsg);
+    CHECK(not d.ContainsMethod("add_function"));
+  }
 }
