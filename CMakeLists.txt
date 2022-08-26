@@ -18,9 +18,9 @@ add_library(coverage_config INTERFACE)
 # Warning options for the compiler
 string(
         APPEND _warning_opts
-        "$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wall;-Wextra;-Weffc++;-Werror;>"
-        "$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wthread-safety;-Wpedantic;>"
-        "$<$<CXX_COMPILER_ID:GNU>:-pedantic;-pedantic-errors;>"
+        "$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wall;-Wextra;-Wno-deprecated-declarations;-Weffc++;-Werror;>"
+        "$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wthread-safety;-Wpedantic;-Wno-deprecated-declarations>"
+        "$<$<CXX_COMPILER_ID:GNU>:-pedantic;-Wno-deprecated-declarations;-pedantic-errors;>"
 )
 
 
