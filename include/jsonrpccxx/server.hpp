@@ -32,8 +32,6 @@ namespace jsonrpccxx {
       const NamedParamMapping args = NAMED_PARAM_MAPPING,
       const NamedParamMapping argDocstrings = NAMED_PARAM_MAPPING)
     {
-      static_assert(not std::is_same<Func, MethodHandle>::value, "This overload specifically needs *not* a handle.");
-
       if (name.find("rpc.", 0) == 0)
         return false;
 
@@ -62,8 +60,6 @@ namespace jsonrpccxx {
       Func method,
       const ParamArgsMap &args)
     {
-      static_assert(not std::is_same<Func, MethodHandle>::value, "This overload specifically needs *not* a handle.");
-
       if (name.find("rpc.", 0) == 0)
         return false;
 
@@ -93,8 +89,6 @@ namespace jsonrpccxx {
       Func func,
       const std::initializer_list<std::string> &args)
     {
-      static_assert(not std::is_same<Func, MethodHandle>::value, "This overload specifically needs *not* a handle.");
-
       if (name.find("rpc.", 0) == 0)
         return false;
 
