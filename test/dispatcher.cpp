@@ -295,3 +295,23 @@ TEST_CASE("checking adding two-parameter method without a handle and without arg
   CHECK(d.Add("class_add", "Class Add", &TestClass::add, &cls, {"lhs", "rhs"}));
   CHECK(d.InvokeMethod("class_add", {1, 2}) == 3);
 }
+
+TEST_CASE("checking adding const class method without a handle") {
+  Dispatcher d;
+
+  class TestClass
+  {
+  public:
+    int add(int lhs, int rhs) const
+    {
+      return lhs + rhs;
+    }
+  };
+
+  CHECK(d.Add("add_function", "Add function", add_function, {"a", "b"}));
+  CHECK(d.InvokeMethod("add_function", {1, 2}) == 3);
+
+  TestClass cls;
+  CHECK(d.Add("class_add", "Class Add", &TestClass::add, &cls, {"lhs", "rhs"}));
+  CHECK(d.InvokeMethod("class_add", {1, 2}) == 3);
+}

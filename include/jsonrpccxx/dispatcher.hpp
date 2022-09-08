@@ -128,6 +128,26 @@ namespace jsonrpccxx {
         argDocstrings);
     }
 
+    template <typename Class, typename ReturnType, typename... ParamTypes>
+    inline bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      ReturnType (Class::*cb)(ParamTypes...) const,
+      Class *cls,
+      const NamedParamMapping &args = NAMED_PARAM_MAPPING,
+      const NamedParamMapping &argDocstrings = NAMED_PARAM_MAPPING)
+    {
+      return this->Add(
+        name,
+        docstring,
+        [cls, cb](ParamTypes&&... params) -> ReturnType
+        {
+          return std::mem_fn(cb)(cls, params...);
+        },
+        args,
+        argDocstrings);
+    }
+
     template <typename Func>
     bool Add(
       const std::string &name,
