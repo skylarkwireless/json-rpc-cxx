@@ -411,3 +411,21 @@ TEST_CASE("checking adding two-parameter method without a handle and without arg
   TestClass cls;
   CHECK(server.Add("class_add", "Class Add", &TestClass::add, &cls, {"lhs", "rhs"}));
 }
+
+TEST_CASE("checking adding const class method without a handle") {
+  JsonRpc2Server server;
+
+  class TestClass
+  {
+  public:
+    int add(int lhs, int rhs) const
+    {
+      return lhs + rhs;
+    }
+  };
+
+  CHECK(server.Add("add_function", "Add function", add_function, {"a", "b"}));
+
+  TestClass cls;
+  CHECK(server.Add("class_add", "Class Add", &TestClass::add, &cls, {"lhs", "rhs"}));
+}

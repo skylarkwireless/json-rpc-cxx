@@ -53,6 +53,21 @@ namespace jsonrpccxx {
       return dispatcher.Add(name, docstring, cb, cls, args, argDocstrings);
     }
 
+    template <typename Class, typename ReturnType, typename... ParamTypes>
+    inline bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      ReturnType (Class::*cb)(ParamTypes...) const,
+      Class *cls,
+      const NamedParamMapping args = NAMED_PARAM_MAPPING,
+      const NamedParamMapping argDocstrings = NAMED_PARAM_MAPPING)
+    {
+      if (name.find("rpc.", 0) == 0)
+        return false;
+
+      return dispatcher.Add(name, docstring, cb, cls, args, argDocstrings);
+    }
+
     template <typename Func>
     inline bool Add(
       const std::string &name,
