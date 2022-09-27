@@ -7,6 +7,7 @@ using namespace std;
 
 static string procCache;
 static unsigned int add_function(unsigned int a, unsigned int b) { return a + b; }
+static unsigned int add_function2(unsigned int a, unsigned int b, unsigned int c) { return a + b + c; }
 static void some_procedure(const string &param) { procCache = param; }
 
 TEST_CASE("add and invoke positional") {
@@ -148,6 +149,11 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     REQUIRE(paramDocstrings.size() == 2);
     CHECK(paramDocstrings[0] == "A");
     CHECK(paramDocstrings[1] == "B");
+
+    // Check force adding with this function signature
+    CHECK(not d.Add("add_function", "Add function", add_function2, ParamArgsMap{{"a", "A"}, {"b", "B"}, {"c", "C"}}));
+    d.ForceAdd("add_function", "Add function", add_function2, ParamArgsMap{{"a", "A"}, {"b", "B"}, {"c", "C"}});
+    REQUIRE(d.InvokeMethod("add_function", {5, 10, 15}) == 30);
   }
 
   // Lambda
@@ -157,6 +163,10 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     auto mismatched_fma = [](int a, float b, unsigned c) -> double
     {
       return (double(a) * double(b)) + double(c);
+    };
+    auto mismatched_fma2 = [](double a, unsigned b, int c) -> float
+    {
+      return (float(a) * float(b)) + float(c);
     };
 
     CHECK(d.Add(
@@ -186,6 +196,11 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     CHECK(paramDocstrings[0] == "A");
     CHECK(paramDocstrings[1] == "B");
     CHECK(paramDocstrings[2] == "C");
+
+    // Check force adding with this function signature
+    CHECK(not d.Add("mismatched_fma", "Perform an FMA with different parameter types", mismatched_fma2, ParamArgsMap{{"a", "A"}, {"b", "B"}, {"c", "C"}}));
+    d.ForceAdd("mismatched_fma", "Perform an FMA with different parameter types", mismatched_fma2, ParamArgsMap{{"a", "A"}, {"b", "B"}, {"c", "C"}});
+    REQUIRE(d.ContainsMethod("mismatched_fma"));
   }
 
   // Class function
@@ -198,6 +213,13 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
       int addAndGetValue(int addAmount)
       {
         value += addAmount;
+        return value;
+      }
+
+      int addAndGetValue2(int addAmount1, int addAmount2)
+      {
+        value += addAmount1;
+        value += addAmount2;
         return value;
       }
     };
@@ -225,11 +247,28 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     const auto paramDocstrings = d.MethodParamDocstrings("class_add_and_get_value");
     REQUIRE(paramDocstrings.size() == 1);
     CHECK(paramDocstrings[0] == "Add amount");
+
+    // Check force adding with this function signature
+    CHECK(not d.Add(
+        "class_add_and_get_value",
+        "Add to a class's field and return the new value",
+        &TestClass::addAndGetValue2,
+        &cls,
+        {"addAmount1", "addAmount2"},
+        {"Add amount", "Add amount 2"}));
+    d.ForceAdd(
+      "class_add_and_get_value",
+      "Add to a class's field and return the new value",
+      &TestClass::addAndGetValue2,
+      &cls,
+      ParamArgsMap{{"addAmount1", "Add amount"}, {"addAmount2", "Add amount 2"}});
+    REQUIRE(d.ContainsMethod("class_add_and_get_value"));
   }
 
   // std::function
   {
     std::function add_std_function(add_function);
+    std::function add_std_function2(add_function2);
 
     Dispatcher d;
 
@@ -253,6 +292,11 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     REQUIRE(paramDocstrings.size() == 2);
     CHECK(paramDocstrings[0] == "A");
     CHECK(paramDocstrings[1] == "B");
+
+    // Check force adding with this function signature
+    CHECK(not d.Add("add_std_function", "Add std::function", add_std_function2, {"a", "b", "c"}, {"A", "B", "C"}));
+    d.Add("add_std_function", "Add std::function", add_std_function2, {"a", "b", "c"}, {"A", "B", "C"});
+    REQUIRE(d.ContainsMethod("add_std_function"));
   }
 }
 
