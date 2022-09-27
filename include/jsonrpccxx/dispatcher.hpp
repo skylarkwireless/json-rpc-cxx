@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 #include "typemapper.hpp"
+#include <cassert>
 #include <functional>
 #include <initializer_list>
 #include <map>
@@ -72,8 +73,12 @@ namespace jsonrpccxx {
         throw std::invalid_argument(errMsgStream.str());
       }
 
-      if((args.size() != argDocstrings.size()) and not argDocstrings.empty())
-        throw std::invalid_argument("Number of parameters must match number of parameter docstrings, or no docstrings must be provided");
+      if((sizeof...(ParamTypes) != argDocstrings.size()) and not argDocstrings.empty()) {
+        std::ostringstream errMsgStream;
+        errMsgStream << "Error registering RPC method \"" << name << "\": number of listed parameters ("
+                     << sizeof...(ParamTypes) << ") must match number of parameter docstrings ("
+                     << argDocstrings.size() << "), or no docstrings must be provided.";
+      }
 
       NamedParamMapping types;
       auto methodHandle = createMethodHandle(
@@ -212,6 +217,18 @@ namespace jsonrpccxx {
       const std::initializer_list<std::string> &args)
     {
       return this->Add(name, docstring, cb, cls, NamedParamMapping(args));
+    }
+
+    template <typename... ArgsType>
+    void ForceAdd(
+        const std::string &name,
+        ArgsType&&... args)
+    {
+      this->Remove(name);
+      const bool ret = this->Add(name, args...);
+
+      (void)ret;
+      assert(ret);
     }
 
     inline bool ContainsMethod(const std::string &name) const { return (methods.find(name) != methods.end()); }

@@ -137,6 +137,14 @@ namespace jsonrpccxx {
       return dispatcher.Add(name, docstring, callback, mapping);
     }
 
+    template <typename... ArgsType>
+    inline void ForceAdd(
+        const std::string &name,
+        ArgsType&&... args)
+    {
+      dispatcher.ForceAdd(name, args...);
+    }
+
     bool ContainsMethod(const std::string &name) {
       if (name.rfind("rpc.", 0) == 0)
         return false;
