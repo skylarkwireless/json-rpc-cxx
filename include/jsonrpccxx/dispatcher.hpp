@@ -243,6 +243,8 @@ namespace jsonrpccxx {
       methods.erase(name);
       notifications.erase(name);
       mapping.erase(name);
+      paramTypes.erase(name);
+      paramDocstrings.erase(name);
       return true;
     }
 
@@ -336,7 +338,7 @@ namespace jsonrpccxx {
   private:
     std::map<std::string, MethodHandle> methods;
     std::map<std::string, NotificationHandle> notifications;
-    ParamArgsMap docstrings;
+    std::map<std::string, std::string> docstrings;
     std::map<std::string, NamedParamMapping> mapping;
     std::map<std::string, NamedParamMapping> paramTypes;
     std::map<std::string, NamedParamMapping> paramDocstrings;
