@@ -16,7 +16,9 @@ namespace jsonrpccxx {
   typedef std::vector<std::string> NamedParamMapping;
   static NamedParamMapping NAMED_PARAM_MAPPING;
 
-  typedef std::map<std::string, std::string> ParamArgsMap;
+  // No, this isn't really a map, but this allows us to use map-like
+  // initializer lists while maintaining the order we pass in parameters.
+  typedef std::vector<std::pair<std::string, std::string>> ParamArgsMap;
 
   // Workaround due to forbidden partial template function specialisation
   template <typename T>
