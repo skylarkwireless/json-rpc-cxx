@@ -302,7 +302,7 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     CHECK(paramNames[1] == "b");
     CHECK(paramNames[2] == "c");
 
-    const auto paramTypes = server.MethodParamTypes("mismatched_fma");
+    auto paramTypes = server.MethodParamTypes("mismatched_fma");
     REQUIRE(paramTypes.size() == 3);
     CHECK(paramTypes[0] == "integer");
     CHECK(paramTypes[1] == "float");
@@ -317,6 +317,12 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     // Check force adding with this function signature
     CHECK(not server.Add("mismatched_fma", "Perform an FMA with different parameter types", mismatched_fma2, ParamArgsMap{{"a", "A"}, {"b", "B"}, {"c", "C"}}));
     server.ForceAdd("mismatched_fma", "Perform an FMA with different parameter types", mismatched_fma2, ParamArgsMap{{"a", "A"}, {"b", "B"}, {"c", "C"}});
+
+    paramTypes = server.MethodParamTypes("mismatched_fma");
+    REQUIRE(paramTypes.size() == 3);
+    CHECK(paramTypes[0] == "float");
+    CHECK(paramTypes[1] == "unsigned integer");
+    CHECK(paramTypes[2] == "integer");
   }
 
   // Class function
@@ -469,4 +475,30 @@ TEST_CASE("checking adding const class method without a handle") {
 
   TestClass cls;
   CHECK(server.Add("class_add", "Class Add", &TestClass::add, &cls, {"lhs", "rhs"}));
+}
+
+TEST_CASE("checking parameter order is preserved with map-like initializer lists") {
+  JsonRpc2Server server;
+
+  auto fcn = [](float z, unsigned y, int x)
+  {
+    return double(z + y + x);
+  };
+
+  CHECK(server.Add("fcn", "Test function", fcn, ParamArgsMap{{"z", "Z"}, {"y", "Y"}, {"x", "X"}}));
+
+  const auto paramNames = server.MethodParamNames("fcn");
+  CHECK(paramNames[0] == "z");
+  CHECK(paramNames[1] == "y");
+  CHECK(paramNames[2] == "x");
+
+  const auto paramTypes = server.MethodParamTypes("fcn");
+  CHECK(paramTypes[0] == "float");
+  CHECK(paramTypes[1] == "unsigned integer");
+  CHECK(paramTypes[2] == "integer");
+
+  const auto paramDocstrings = server.MethodParamDocstrings("fcn");
+  CHECK(paramDocstrings[0] == "Z");
+  CHECK(paramDocstrings[1] == "Y");
+  CHECK(paramDocstrings[2] == "X");
 }
