@@ -257,6 +257,7 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     REQUIRE(server.ContainsMethod("add_function"));
     REQUIRE(server.Contains("add_function"));
     REQUIRE(server.MethodDocstring("add_function") == "Add function");
+    REQUIRE(server.MethodMetadata("add_function").empty());
 
     const auto paramNames = server.MethodParamNames("add_function");
     REQUIRE(paramNames.size() == 2);
@@ -295,6 +296,7 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     REQUIRE(server.ContainsMethod("mismatched_fma"));
     REQUIRE(server.Contains("mismatched_fma"));
     REQUIRE(server.MethodDocstring("mismatched_fma") == "Perform an FMA with different parameter types");
+    REQUIRE(server.MethodMetadata("mismatched_fma").empty());
 
     const auto paramNames = server.MethodParamNames("mismatched_fma");
     REQUIRE(paramNames.size() == 3);
@@ -358,6 +360,7 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     REQUIRE(server.ContainsMethod("class_add_and_get_value"));
     REQUIRE(server.Contains("class_add_and_get_value"));
     REQUIRE(server.MethodDocstring("class_add_and_get_value") == "Add to a class's field and return the new value");
+    REQUIRE(server.MethodMetadata("class_add_and_get_value").empty());
 
     const auto paramNames = server.MethodParamNames("class_add_and_get_value");
     REQUIRE(paramNames.size() == 1);
@@ -398,6 +401,7 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     REQUIRE(server.ContainsMethod("add_std_function"));
     REQUIRE(server.Contains("add_std_function"));
     REQUIRE(server.MethodDocstring("add_std_function") == "Add std::function");
+    REQUIRE(server.MethodMetadata("add_std_function").empty());
 
     const auto paramNames = server.MethodParamNames("add_std_function");
     REQUIRE(paramNames.size() == 2);
@@ -501,4 +505,22 @@ TEST_CASE("checking parameter order is preserved with map-like initializer lists
   CHECK(paramDocstrings[0] == "Z");
   CHECK(paramDocstrings[1] == "Y");
   CHECK(paramDocstrings[2] == "X");
+}
+
+TEST_CASE("check adding metadata") {
+  JsonRpc2Server server;
+
+  auto fcn = [](float z, unsigned y, int x)
+  {
+    return double(z + y + x);
+  };
+
+  CHECK(server.Add("fcn", "Test function", fcn, ParamArgsMap{{"z", "Z"}, {"y", "Y"}, {"x", "X"}}));
+  REQUIRE(server.MethodMetadata("fcn").empty());
+
+  const nlohmann::json md{{"foo", "bar"}, {"baz", 5}};
+  REQUIRE(server.AddMethodMetadata("fcn", md));
+  CHECK(server.MethodMetadata("fcn") == md);
+
+  REQUIRE(!server.AddMethodMetadata("bad fcn", md));
 }

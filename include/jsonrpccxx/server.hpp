@@ -167,6 +167,10 @@ namespace jsonrpccxx {
       return dispatcher.Remove(name);
     }
 
+    inline bool AddMethodMetadata(const std::string &name, const nlohmann::json &metadata) {
+      return dispatcher.AddMethodMetadata(name, metadata);
+    }
+
     inline std::vector<std::string> MethodNames() const {
       return dispatcher.MethodNames();
     }
@@ -176,6 +180,10 @@ namespace jsonrpccxx {
 
     inline std::string MethodDocstring(const std::string &name) const {
       return dispatcher.MethodDocstring(name);
+    }
+
+    inline nlohmann::json MethodMetadata(const std::string &name) const {
+      return dispatcher.MethodMetadata(name);
     }
 
     inline std::vector<std::string> MethodParamNames(const std::string &name) const {
