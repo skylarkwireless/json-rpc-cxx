@@ -18,6 +18,7 @@ namespace jsonrpccxx {
       methods(),
       notifications(),
       docstrings(),
+      metadatas(),
       mapping(),
       paramTypes(),
       paramDocstrings()
@@ -97,11 +98,11 @@ namespace jsonrpccxx {
       return true;
     }
 
-    template <typename Func>
+    template <typename ReturnType, typename... ParamTypes>
     inline bool Add(
       const std::string &name,
       const std::string &docstring,
-      Func method,
+      ReturnType (*method)(ParamTypes...),
       const NamedParamMapping &args = NAMED_PARAM_MAPPING,
       const NamedParamMapping &argDocstrings = NAMED_PARAM_MAPPING)
     {
@@ -194,6 +195,22 @@ namespace jsonrpccxx {
       return this->Add(name, docstring, cb, cls, argNames, argDocstrings);
     }
 
+    template <typename Func>
+    inline bool Add(
+      const std::string &name,
+      const std::string &docstring,
+      Func method,
+      const NamedParamMapping &args = NAMED_PARAM_MAPPING,
+      const NamedParamMapping &argDocstrings = NAMED_PARAM_MAPPING)
+    {
+      return this->Add(
+        name,
+        docstring,
+        std::function(method),
+        args,
+        argDocstrings);
+    }
+
     // This workaround is necessary to avoid ambiguity between std::vector<std::string> and
     // std::map<std::string, std::string> when using braced initializer lists.
     template <typename Func>
@@ -243,8 +260,17 @@ namespace jsonrpccxx {
       methods.erase(name);
       notifications.erase(name);
       mapping.erase(name);
+      metadatas.erase(name);
       paramTypes.erase(name);
       paramDocstrings.erase(name);
+      return true;
+    }
+
+    // Ideally, this would be part of the Add call, but I couldn't get overloading to work.
+    bool AddMethodMetadata(const std::string &name, const nlohmann::json &metadata) {
+      if (!Contains(name))
+        return false;
+      metadatas[name] = metadata;
       return true;
     }
 
@@ -267,6 +293,13 @@ namespace jsonrpccxx {
     std::string MethodDocstring(const std::string &name) const {
       if (docstrings.count(name) > 0) {
           return docstrings.at(name);
+      }
+      return {};
+    }
+
+    nlohmann::json MethodMetadata(const std::string &name) const {
+      if (metadatas.count(name) > 0) {
+          return metadatas.at(name);
       }
       return {};
     }
@@ -339,6 +372,7 @@ namespace jsonrpccxx {
     std::map<std::string, MethodHandle> methods;
     std::map<std::string, NotificationHandle> notifications;
     std::map<std::string, std::string> docstrings;
+    std::map<std::string, nlohmann::json> metadatas;
     std::map<std::string, NamedParamMapping> mapping;
     std::map<std::string, NamedParamMapping> paramTypes;
     std::map<std::string, NamedParamMapping> paramDocstrings;

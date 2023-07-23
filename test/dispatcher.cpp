@@ -134,6 +134,7 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     REQUIRE(d.Contains("add_function"));
     REQUIRE(d.InvokeMethod("add_function", {5, 10}) == 15);
     REQUIRE(d.MethodDocstring("add_function") == "Add function");
+    REQUIRE(d.MethodMetadata("add_function").empty());
 
     const auto paramNames = d.MethodParamNames("add_function");
     REQUIRE(paramNames.size() == 2);
@@ -178,6 +179,7 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     REQUIRE(d.Contains("mismatched_fma"));
     REQUIRE(d.InvokeMethod("mismatched_fma", {5, 10.0f, 20}) == 70.0);
     REQUIRE(d.MethodDocstring("mismatched_fma") == "Perform an FMA with different parameter types");
+    REQUIRE(d.MethodMetadata("mismatched_fma").empty());
 
     const auto paramNames = d.MethodParamNames("mismatched_fma");
     REQUIRE(paramNames.size() == 3);
@@ -241,6 +243,7 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     REQUIRE(d.Contains("class_add_and_get_value"));
     REQUIRE(d.InvokeMethod("class_add_and_get_value", {20}) == 50);
     REQUIRE(d.MethodDocstring("class_add_and_get_value") == "Add to a class's field and return the new value");
+    REQUIRE(d.MethodMetadata("class_add_and_get_value").empty());
 
     const auto paramNames = d.MethodParamNames("class_add_and_get_value");
     REQUIRE(paramNames.size() == 1);
@@ -283,6 +286,7 @@ TEST_CASE("checking adding calls without wrapping in a handle") {
     REQUIRE(d.Contains("add_std_function"));
     REQUIRE(d.InvokeMethod("add_std_function", {5, 10}) == 15);
     REQUIRE(d.MethodDocstring("add_std_function") == "Add std::function");
+    REQUIRE(d.MethodMetadata("add_std_function").empty());
 
     const auto paramNames = d.MethodParamNames("add_std_function");
     REQUIRE(paramNames.size() == 2);
@@ -390,4 +394,22 @@ TEST_CASE("checking parameter order is preserved with map-like initializer lists
   CHECK(paramDocstrings[0] == "Z");
   CHECK(paramDocstrings[1] == "Y");
   CHECK(paramDocstrings[2] == "X");
+}
+
+TEST_CASE("check adding metadata") {
+  Dispatcher d;
+
+  auto fcn = [](float z, unsigned y, int x)
+  {
+    return double(z + y + x);
+  };
+
+  CHECK(d.Add("fcn", "Test function", fcn, ParamArgsMap{{"z", "Z"}, {"y", "Y"}, {"x", "X"}}));
+  REQUIRE(d.MethodMetadata("fcn").empty());
+
+  const nlohmann::json md{{"foo", "bar"}, {"baz", 5}};
+  REQUIRE(d.AddMethodMetadata("fcn", md));
+  CHECK(d.MethodMetadata("fcn") == md);
+
+  REQUIRE(!d.AddMethodMetadata("bad fcn", md));
 }
