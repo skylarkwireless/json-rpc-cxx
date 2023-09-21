@@ -5,6 +5,7 @@
 #include <functional>
 #include <limits>
 #include <map>
+#include <sstream>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -71,70 +72,103 @@ namespace jsonrpccxx {
     }
   }
 
+  inline std::string make_error_prefix(const std::string &methodName, const std::string &paramName) {
+    return methodName + ": invalid parameter \"" + paramName + "\"";
+  }
+
+  inline std::string make_error_message(const std::string &methodName, const std::string &paramName, const std::string &message) {
+    return make_error_prefix(methodName, paramName) + " (" + message + ")";
+  }
+
+  inline std::string make_invalid_type_error_message(const std::string &methodName, const std::string &paramName, const json &x, json::value_t expectedType) {
+    std::ostringstream errMsgStream;
+    errMsgStream << make_error_prefix(methodName, paramName) << " (must be " << type_name(expectedType)
+                 << ", but is " << type_name(x.type()) << ": " << x.dump() << ")";
+    return errMsgStream.str();
+  }
+
   template <typename T>
-  inline void check_param_type(size_t index, const json &x, json::value_t expectedType, typename std::enable_if<std::is_arithmetic<T>::value>::type * = 0) {
+  inline std::string make_numeric_bounds_error_message(const std::string &methodName, const std::string &paramName, const json &x, json::value_t expectedType) {
+    std::ostringstream errMsgStream;
+    errMsgStream << make_error_prefix(methodName, paramName) << " (exceeds value range of " << type_name(expectedType)
+                 << ": " << x.dump() << ")";
+    return errMsgStream.str();
+  }
+
+  template <typename T>
+  inline void check_param_type(const std::string &methodName, const std::string &paramName, const json &x, json::value_t expectedType, typename std::enable_if<std::is_arithmetic<T>::value>::type * = 0) {
     if (expectedType == json::value_t::number_unsigned && x.type() == json::value_t::number_integer) {
       if (x.get<long long int>() < 0)
-        throw JsonRpcException(invalid_params, "invalid parameter: must be " + type_name(expectedType) + ", but is " + type_name(x.type()), index);
+        throw JsonRpcException(invalid_params, make_invalid_type_error_message(methodName, paramName, x, expectedType));
     } else if (x.type() == json::value_t::number_unsigned && expectedType == json::value_t::number_integer) {
       if (x.get<long long unsigned>() > (long long unsigned)std::numeric_limits<T>::max()) {
-        throw JsonRpcException(invalid_params, "invalid parameter: exceeds value range of " + type_name(expectedType), index);
+        throw JsonRpcException(invalid_params, make_numeric_bounds_error_message<T>(methodName, paramName, x, expectedType));
       }
     }
     else if ((x.type() == json::value_t::number_unsigned || x.type() == json::value_t::number_integer) && expectedType == json::value_t::number_float) {
       if (static_cast<long long int>(x.get<double>()) != x.get<long long int>()) {
-        throw JsonRpcException(invalid_params, "invalid parameter: exceeds value range of " + type_name(expectedType), index);
+        throw JsonRpcException(invalid_params, make_numeric_bounds_error_message<T>(methodName, paramName, x, expectedType));
       }
     } else if (x.type() != expectedType) {
-      throw JsonRpcException(invalid_params, "invalid parameter: must be " + type_name(expectedType) + ", but is " + type_name(x.type()), index);
+      throw JsonRpcException(invalid_params, make_invalid_type_error_message(methodName, paramName, x, expectedType));
     }
   }
 
   template <typename T>
-  inline void check_param_type(size_t index, const json &x, json::value_t expectedType, typename std::enable_if<!std::is_arithmetic<T>::value>::type * = 0) {
+  inline void check_param_type(const std::string &methodName, const std::string &paramName, const json &x, json::value_t expectedType, typename std::enable_if<!std::is_arithmetic<T>::value>::type * = 0) {
     if (x.type() != expectedType) {
-      throw JsonRpcException(invalid_params, "invalid parameter: must be " + type_name(expectedType) + ", but is " + type_name(x.type()), index);
+      throw JsonRpcException(invalid_params, make_invalid_type_error_message(methodName, paramName, x, expectedType));
     }
   }
 
   template <typename ReturnType, typename... ParamTypes, std::size_t... index>
-  MethodHandle createMethodHandle(std::function<ReturnType(ParamTypes...)> method, std::index_sequence<index...> seq, NamedParamMapping &types) {
+  MethodHandle createMethodHandle(const std::string &methodName, const NamedParamMapping &paramNames, std::function<ReturnType(ParamTypes...)> method, std::index_sequence<index...> seq, NamedParamMapping &types) {
     (void)seq;
 
     (types.emplace_back(type_name(GetType(type<std::decay_t<ParamTypes>>()))), ...);
 
-    MethodHandle handle = [method](const json &params) -> json {
+    if (paramNames.size() != sizeof...(ParamTypes)) {
+      std::ostringstream errMsgStream;
+      errMsgStream << "Error registering RPC method \"" << methodName << "\": number of parameter names ("
+                   << paramNames.size() << ") does not match registered method's parameter list ("
+                   << sizeof...(ParamTypes) << ").";
+
+      throw std::invalid_argument(errMsgStream.str());
+    }
+
+    MethodHandle handle = [method, methodName, paramNames](const json &params) -> json {
       size_t actualSize = params.size();
       size_t formalSize = sizeof...(ParamTypes);
       // TODO: add lenient mode for backwards compatible additional params
       if (actualSize != formalSize) {
-        throw JsonRpcException(invalid_params, "invalid parameter: expected " + std::to_string(formalSize) + " argument(s), but found " + std::to_string(actualSize));
+        throw JsonRpcException(invalid_params, methodName + ": invalid parameters (expected " + std::to_string(formalSize) + " argument(s), but found " + std::to_string(actualSize) + ")");
       }
-      (check_param_type<typename std::decay<ParamTypes>::type>(index, params[index], GetType(type<typename std::decay<ParamTypes>::type>())), ...);
+      (check_param_type<typename std::decay<ParamTypes>::type>(methodName, paramNames[index], params[index], GetType(type<typename std::decay<ParamTypes>::type>())), ...);
+
       return method(params[index].get<typename std::decay<ParamTypes>::type>()...);
     };
     return handle;
   }
 
   template <typename ReturnType, typename... ParamTypes, std::size_t... index>
-  inline MethodHandle createMethodHandle(std::function<ReturnType(ParamTypes...)> method, std::index_sequence<index...> seq) {
+  inline MethodHandle createMethodHandle(const std::string &methodName, const NamedParamMapping &paramNames, std::function<ReturnType(ParamTypes...)> method, std::index_sequence<index...> seq) {
     NamedParamMapping _;
-    return createMethodHandle(method, seq, _);
+    return createMethodHandle(methodName, paramNames, method, seq, _);
   }
 
   template <typename ReturnType, typename... ParamTypes>
-  MethodHandle methodHandle(std::function<ReturnType(ParamTypes...)> method) {
-    return createMethodHandle(method, std::index_sequence_for<ParamTypes...>{});
+  MethodHandle methodHandle(const std::string &methodName, const NamedParamMapping &paramNames, std::function<ReturnType(ParamTypes...)> method) {
+    return createMethodHandle(methodName, paramNames, method, std::index_sequence_for<ParamTypes...>{});
   }
 
   template <typename ReturnType, typename... ParamTypes>
-  MethodHandle GetHandle(std::function<ReturnType(ParamTypes...)> f) {
-    return methodHandle(f);
+  MethodHandle GetHandle(const std::string &methodName, const NamedParamMapping &paramNames, std::function<ReturnType(ParamTypes...)> f) {
+    return methodHandle(methodName, paramNames, f);
   }
   // Mapping for c-style function pointers
   template <typename ReturnType, typename... ParamTypes>
-  MethodHandle GetHandle(ReturnType (*f)(ParamTypes...)) {
-    return GetHandle(std::function<ReturnType(ParamTypes...)>(f));
+  MethodHandle GetHandle(const std::string &methodName, const NamedParamMapping &paramNames, ReturnType (*f)(ParamTypes...)) {
+    return GetHandle(methodName, paramNames, std::function<ReturnType(ParamTypes...)>(f));
   }
 
   inline MethodHandle GetUncheckedHandle(std::function<json(const json&)> f) {
@@ -148,34 +182,34 @@ namespace jsonrpccxx {
   // Notification mapping
   //
   template <typename... ParamTypes, std::size_t... index>
-  NotificationHandle createNotificationHandle(std::function<void(ParamTypes...)> method, std::index_sequence<index...>) {
-    NotificationHandle handle = [method](const json &params) -> void {
+  NotificationHandle createNotificationHandle(const std::string &methodName, const NamedParamMapping &paramNames, std::function<void(ParamTypes...)> method, std::index_sequence<index...>) {
+    NotificationHandle handle = [method, methodName, paramNames](const json &params) -> void {
       size_t actualSize = params.size();
       size_t formalSize = sizeof...(ParamTypes);
       // TODO: add lenient mode for backwards compatible additional params
       // if ((!allow_unkown_params && actualSize != formalSize) || (allow_unkown_params && actualSize < formalSize)) {
       if (actualSize != formalSize) {
-        throw JsonRpcException(invalid_params, "invalid parameter: expected " + std::to_string(formalSize) + " argument(s), but found " + std::to_string(actualSize));
+        throw JsonRpcException(invalid_params, methodName + ": invalid parameters (expected " + std::to_string(formalSize) + " argument(s), but found " + std::to_string(actualSize) + ")");
       }
-      (check_param_type<typename std::decay<ParamTypes>::type>(index, params[index], GetType(type<typename std::decay<ParamTypes>::type>())), ...);
+      (check_param_type<typename std::decay<ParamTypes>::type>(methodName, paramNames[index], params[index], GetType(type<typename std::decay<ParamTypes>::type>())), ...);
       method(params[index].get<typename std::decay<ParamTypes>::type>()...);
     };
     return handle;
   }
 
   template <typename... ParamTypes>
-  NotificationHandle notificationHandle(std::function<void(ParamTypes...)> method) {
-    return createNotificationHandle(method, std::index_sequence_for<ParamTypes...>{});
+  NotificationHandle notificationHandle(const std::string &methodName, const NamedParamMapping &paramNames, std::function<void(ParamTypes...)> method) {
+    return createNotificationHandle(methodName, paramNames, method, std::index_sequence_for<ParamTypes...>{});
   }
 
   template <typename... ParamTypes>
-  NotificationHandle GetHandle(std::function<void(ParamTypes...)> f) {
-    return notificationHandle(f);
+  NotificationHandle GetHandle(const std::string &methodName, const NamedParamMapping &paramNames, std::function<void(ParamTypes...)> f) {
+    return notificationHandle(methodName, paramNames, f);
   }
 
   template <typename... ParamTypes>
-  NotificationHandle GetHandle(void (*f)(ParamTypes...)) {
-    return GetHandle(std::function<void(ParamTypes...)>(f));
+  NotificationHandle GetHandle(const std::string &methodName, const NamedParamMapping &paramNames, void (*f)(ParamTypes...)) {
+    return GetHandle(methodName, paramNames, std::function<void(ParamTypes...)>(f));
   }
 
   inline NotificationHandle GetUncheckedNotificationHandle(std::function<void(const json&)> f) {
@@ -186,34 +220,34 @@ namespace jsonrpccxx {
   }
 
   template <typename T, typename ReturnType, typename... ParamTypes>
-  MethodHandle methodHandle(ReturnType (T::*method)(ParamTypes...), T &instance) {
+  MethodHandle methodHandle(const std::string &methodName, const NamedParamMapping &paramNames, ReturnType (T::*method)(ParamTypes...), T &instance) {
     std::function<ReturnType(ParamTypes...)> function = [&instance, method](ParamTypes &&... params) -> ReturnType {
       return (instance.*method)(std::forward<ParamTypes>(params)...);
     };
-    return methodHandle(function);
+    return methodHandle(methodName, paramNames, function);
   }
 
   template <typename T, typename... ParamTypes>
-  NotificationHandle notificationHandle(void (T::*method)(ParamTypes...), T &instance) {
+  NotificationHandle notificationHandle(const std::string &methodName, const NamedParamMapping &paramNames, void (T::*method)(ParamTypes...), T &instance) {
     std::function<void(ParamTypes...)> function = [&instance, method](ParamTypes &&... params) -> void {
       return (instance.*method)(std::forward<ParamTypes>(params)...);
     };
-    return notificationHandle(function);
+    return notificationHandle(methodName, paramNames, function);
   }
 
   template <typename T, typename ReturnType, typename... ParamTypes>
-  MethodHandle GetHandle(ReturnType (T::*method)(ParamTypes...), T &instance) {
+  MethodHandle GetHandle(const std::string &methodName, const NamedParamMapping &paramNames, ReturnType (T::*method)(ParamTypes...), T &instance) {
     std::function<ReturnType(ParamTypes...)> function = [&instance, method](ParamTypes &&... params) -> ReturnType {
       return (instance.*method)(std::forward<ParamTypes>(params)...);
     };
-    return GetHandle(function);
+    return GetHandle(methodName, paramNames, function);
   }
 
   template <typename T, typename... ParamTypes>
-  NotificationHandle GetHandle(void (T::*method)(ParamTypes...), T &instance) {
+  NotificationHandle GetHandle(const std::string &methodName, const NamedParamMapping &paramNames, void (T::*method)(ParamTypes...), T &instance) {
     std::function<void(ParamTypes...)> function = [&instance, method](ParamTypes &&... params) -> void {
       return (instance.*method)(std::forward<ParamTypes>(params)...);
     };
-    return GetHandle(function);
+    return GetHandle(methodName, paramNames, function);
   }
 }

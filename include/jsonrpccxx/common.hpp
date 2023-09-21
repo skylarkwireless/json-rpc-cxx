@@ -25,9 +25,9 @@ namespace jsonrpccxx {
 
   class JsonRpcException : public std::exception {
   public:
-    JsonRpcException(int code, const std::string &message) noexcept : code(code), message(message), data(nullptr), err(std::to_string(code) + ": " + message) {}
+    JsonRpcException(int code, const std::string &message) noexcept : code(code), message(message), data(nullptr), err(message) {}
     JsonRpcException(int code, const std::string &message, const json &data) noexcept
-        : code(code), message(message), data(data), err(std::to_string(code) + ": " + message + ", data: " + data.dump()) {}
+        : code(code), message(message), data(data), err(message + ", data: " + data.dump()) {}
 
     error_type Type() const {
       if (code >= -32603 && code <= -32600)

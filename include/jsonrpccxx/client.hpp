@@ -68,9 +68,9 @@ namespace jsonrpccxx {
           else
             return JsonRpcResponse{response["id"].get<int>(), response["result"].get<json>()};
         }
-        throw JsonRpcException(internal_error, R"(invalid server response: neither "result" nor "error" fields found)");
+        throw JsonRpcException(internal_error, name + R"(: invalid server response (neither "result" nor "error" fields found))");
       } catch (json::parse_error &e) {
-        throw JsonRpcException(parse_error, std::string("invalid JSON response from server: ") + e.what());
+        throw JsonRpcException(parse_error, name + ": invalid JSON response from server (" + e.what() + ")");
       }
     }
 

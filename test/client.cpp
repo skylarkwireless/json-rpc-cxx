@@ -145,10 +145,10 @@ TEST_CASE_FIXTURE(F, "v1_method_result_array") {
 
 TEST_CASE_FIXTURE(F, "v2_method_result_empty") {
   c.raw_response = "{}";
-  REQUIRE_THROWS_WITH(clientV2.CallMethod<json>("1", "some.method_1", {}), "-32603: invalid server response: neither \"result\" nor \"error\" fields found");
+  REQUIRE_THROWS_WITH(clientV2.CallMethod<json>("1", "some.method_1", {}), "some.method_1: invalid server response (neither \"result\" nor \"error\" fields found)");
   c.VerifyMethodRequest(version::v2, "some.method_1", "1");
   c.raw_response = "[]";
-  REQUIRE_THROWS_WITH(clientV2.CallMethod<json>("1", "some.method_1", {}), "-32603: invalid server response: neither \"result\" nor \"error\" fields found");
+  REQUIRE_THROWS_WITH(clientV2.CallMethod<json>("1", "some.method_1", {}), "some.method_1: invalid server response (neither \"result\" nor \"error\" fields found)");
   c.VerifyMethodRequest(version::v2, "some.method_1", "1");
 }
 
