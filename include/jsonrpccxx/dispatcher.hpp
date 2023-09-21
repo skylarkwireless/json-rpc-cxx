@@ -79,10 +79,14 @@ namespace jsonrpccxx {
         errMsgStream << "Error registering RPC method \"" << name << "\": number of listed parameters ("
                      << sizeof...(ParamTypes) << ") must match number of parameter docstrings ("
                      << argDocstrings.size() << "), or no docstrings must be provided.";
+
+        throw std::invalid_argument(errMsgStream.str());
       }
 
       NamedParamMapping types;
       auto methodHandle = createMethodHandle(
+        name,
+        args,
         std::forward<decltype(method)>(method),
         std::index_sequence_for<ParamTypes...>{},
         types);
@@ -327,7 +331,8 @@ namespace jsonrpccxx {
       return {};
     }
 
-    JsonRpcException process_type_error(const std::string &name, JsonRpcException &e) {
+    JsonRpcException process_type_error(const std::string &, JsonRpcException &e) {
+/*
       if (e.Code() == -32602 && !e.Data().empty()) {
         std::string message = e.Message() + " for parameter ";
         if (this->mapping.find(name) != this->mapping.end()) {
@@ -337,6 +342,7 @@ namespace jsonrpccxx {
         }
         return JsonRpcException(e.Code(), message);
       }
+*/
       return e;
     }
 
@@ -348,9 +354,12 @@ namespace jsonrpccxx {
       try {
         return method->second(normalize_parameter(name, params));
       } catch (json::type_error &e) {
-        throw JsonRpcException(invalid_params, "invalid parameter: " + std::string(e.what()));
+        throw JsonRpcException(invalid_params, name + ": invalid parameter (" + e.what() + ")");
       } catch (JsonRpcException &e) {
         throw process_type_error(name, e);
+      } catch (std::exception &e) {
+        // Exception type doesn't matter here
+        throw std::runtime_error(name + ": " + e.what());
       }
     }
 
@@ -382,18 +391,18 @@ namespace jsonrpccxx {
         return params;
       } else if (params.type() == json::value_t::object) {
         if (mapping.find(name) == mapping.end()) {
-          throw JsonRpcException(invalid_params, "invalid parameter: procedure doesn't support named parameter");
+          throw JsonRpcException(invalid_params, name + ": procedure doesn't support named parameter");
         }
         json result;
         for (auto const &p : mapping[name]) {
           if (params.find(p) == params.end()) {
-            throw JsonRpcException(invalid_params, "invalid parameter: missing named parameter \"" + p + "\"");
+            throw JsonRpcException(invalid_params, name + ": missing named parameter \"" + p + "\"");
           }
           result.push_back(params[p]);
         }
         return result;
       }
-      throw JsonRpcException(invalid_request, "invalid request: params field must be an array, object");
+      throw JsonRpcException(invalid_request, name + ": invalid request (params field must be an array or object)");
     }
   };
 } // namespace jsonrpccxx

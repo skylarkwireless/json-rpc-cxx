@@ -110,19 +110,19 @@ public:
 
 TEST_CASE_FIXTURE(Server2, "v2_invocations") {
   TestServer t;
-  REQUIRE(server.Add("add_function", GetHandle(&TestServer::add_function, t), {"a", "b"}));
-  REQUIRE(server.Add("div_function", GetHandle(&TestServer::div_function, t), {"a", "b"}));
-  REQUIRE(server.Add("some_procedure", GetHandle(&TestServer::some_procedure, t), {"param"}));
-  REQUIRE(server.Add("add_products", GetHandle(&TestServer::add_products, t), {"products"}));
-  REQUIRE(server.Add("dirty_notification", GetHandle(&TestServer::dirty_notification, t), {"products"}));
-  REQUIRE(server.Add("dirty_method", GetHandle(&TestServer::dirty_method, t), {"a", "b"}));
-  REQUIRE(server.Add("dirty_method2", GetHandle(&TestServer::dirty_method2, t), {"a", "b"}));
+  REQUIRE(server.Add("add_function", GetHandle("add_function", {"a", "b"}, &TestServer::add_function, t), {"a", "b"}));
+  REQUIRE(server.Add("div_function", GetHandle("div_function", {"a", "b"}, &TestServer::div_function, t), {"a", "b"}));
+  REQUIRE(server.Add("some_procedure", GetHandle("some_procedure", {"param"}, &TestServer::some_procedure, t), {"param"}));
+  REQUIRE(server.Add("add_products", GetHandle("add_products", {"products"}, &TestServer::add_products, t), {"products"}));
+  REQUIRE(server.Add("dirty_notification", GetHandle("dirty_notification", {"products"}, &TestServer::dirty_notification, t), {"products"}));
+  REQUIRE(server.Add("dirty_method", GetHandle("dirty_method", {"a", "b"}, &TestServer::dirty_method, t), {"a", "b"}));
+  REQUIRE(server.Add("dirty_method2", GetHandle("dirty_method2", {"a", "b"}, &TestServer::dirty_method2, t), {"a", "b"}));
 
-  REQUIRE(!server.Add("dirty_method2", GetHandle(&TestServer::dirty_method2, t), {"a", "b"}));
-  REQUIRE(!server.Add("rpc.something", GetHandle(&TestServer::dirty_method2, t), {"a", "b"}));
-  REQUIRE(!server.Add("rpc.", GetHandle(&TestServer::dirty_method2, t), {"a", "b"}));
-  REQUIRE(!server.Add("rpc.somenotification", GetHandle(&TestServer::dirty_notification, t), {"a", "b"}));
-  REQUIRE(server.Add("rpc", GetHandle(&TestServer::dirty_method2, t), {"a", "b"}));
+  REQUIRE(!server.Add("dirty_method2", GetHandle("dirty_method2", {"a", "b"}, &TestServer::dirty_method2, t), {"a", "b"}));
+  REQUIRE(!server.Add("rpc.something", GetHandle("rpc.something", {"a", "b"}, &TestServer::dirty_method2, t), {"a", "b"}));
+  REQUIRE(!server.Add("rpc.", GetHandle("rpc.", {"a", "b"}, &TestServer::dirty_method2, t), {"a", "b"}));
+  REQUIRE(!server.Add("rpc.somenotification", GetHandle("rpc.somenotification", {"a", "b"}, &TestServer::dirty_notification, t), {"a", "b"}));
+  REQUIRE(server.Add("rpc", GetHandle("rpc", {"a", "b"}, &TestServer::dirty_method2, t), {"a", "b"}));
 
   connector.CallMethod(1, "add_function", {{"a", 3}, {"b", 4}});
   CHECK(connector.VerifyMethodResult(1) == 7);
@@ -162,7 +162,7 @@ TEST_CASE_FIXTURE(Server2, "v2_invocations") {
 
 TEST_CASE_FIXTURE(Server2, "v2_batch") {
   TestServer t;
-  REQUIRE(server.Add("add_function", GetHandle(&TestServer::add_function, t), {"a", "b"}));
+  REQUIRE(server.Add("add_function", GetHandle("add_function", {"a", "b"}, &TestServer::add_function, t), {"a", "b"}));
 
   json batchcall;
 
@@ -190,14 +190,14 @@ TEST_CASE_FIXTURE(Server2, "v2_check_functions") {
   CHECK(server.MethodNames().empty());
   CHECK(server.NotificationNames().empty());
 
-  REQUIRE(server.Add("add_function", GetHandle(&TestServer::add_function, t), {"a", "b"}));
-  REQUIRE(server.Add("div_function", GetHandle(&TestServer::div_function, t), {"a", "b"}));
-  REQUIRE(server.Add("some_procedure", GetHandle(&TestServer::some_procedure, t), {"param"}));
-  REQUIRE(server.Add("add_products", GetHandle(&TestServer::add_products, t), {"products"}));
-  REQUIRE(server.Add("dirty_notification", GetHandle(&TestServer::dirty_notification, t), {"products"}));
-  REQUIRE(server.Add("dirty_method", GetHandle(&TestServer::dirty_method, t), {"a", "b"}));
-  REQUIRE(server.Add("dirty_method2", GetHandle(&TestServer::dirty_method2, t), {"a", "b"}));
-  REQUIRE(server.Add("rpc", GetHandle(&TestServer::dirty_method2, t), {"a", "b"}));
+  REQUIRE(server.Add("add_function", GetHandle("add_function", {"a", "b"}, &TestServer::add_function, t), {"a", "b"}));
+  REQUIRE(server.Add("div_function", GetHandle("div_function", {"a", "b"}, &TestServer::div_function, t), {"a", "b"}));
+  REQUIRE(server.Add("some_procedure", GetHandle("some_procedure", {"param"}, &TestServer::some_procedure, t), {"param"}));
+  REQUIRE(server.Add("add_products", GetHandle("add_products", {"products"}, &TestServer::add_products, t), {"products"}));
+  REQUIRE(server.Add("dirty_notification", GetHandle("dirty_notification", {"products"}, &TestServer::dirty_notification, t), {"products"}));
+  REQUIRE(server.Add("dirty_method", GetHandle("dirty_method", {"a", "b"}, &TestServer::dirty_method, t), {"a", "b"}));
+  REQUIRE(server.Add("dirty_method2", GetHandle("dirty_method2", {"a", "b"}, &TestServer::dirty_method2, t), {"a", "b"}));
+  REQUIRE(server.Add("rpc", GetHandle("dirty_method2", {"a", "b"}, &TestServer::dirty_method2, t), {"a", "b"}));
 
   CHECK(server.ContainsMethod("add_function"));
   CHECK(server.ContainsMethod("div_function"));

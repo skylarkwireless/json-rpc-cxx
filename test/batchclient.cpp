@@ -15,12 +15,12 @@ TEST_CASE("batchresponse") {
 
   CHECK(br.HasErrors());
   CHECK(br.Get<string>("1") == "someresultstring");
-  REQUIRE_THROWS_WITH(br.Get<string>(1), "-32700: no result found for id 1");
+  REQUIRE_THROWS_WITH(br.Get<string>(1), "no result found for id 1");
   CHECK(br.Get<int>("2") == 33);
   CHECK(br.Get<int>("2") == 33);
-  REQUIRE_THROWS_WITH(br.Get<int>("1"), "-32700: invalid return type: [json.exception.type_error.302] type must be number, but is string");
-  REQUIRE_THROWS_WITH(br.Get<string>("3"), "-111: the error message");
-  REQUIRE_THROWS_WITH(br.Get<string>(nullptr), "-32700: no result found for id null");
+  REQUIRE_THROWS_WITH(br.Get<int>("1"), "invalid return type: [json.exception.type_error.302] type must be number, but is string");
+  REQUIRE_THROWS_WITH(br.Get<string>("3"), "the error message");
+  REQUIRE_THROWS_WITH(br.Get<string>(nullptr), "no result found for id null");
 
   CHECK(br.GetInvalidIndexes().size() == 2);
   CHECK(br.GetResponse().size() == 5);
@@ -68,7 +68,7 @@ TEST_CASE("batchclient") {
   CHECK(response.Get<int>(2) == 33);
 
   c.SetBatchResult("{}");
-  CHECK_THROWS_WITH(client.BatchCall(r), "-32700: invalid JSON response from server: expected array");
+  CHECK_THROWS_WITH(client.BatchCall(r), "invalid JSON response from server: expected array");
   c.raw_response = "somestring";
-  CHECK_THROWS_WITH(client.BatchCall(r), "-32700: invalid JSON response from server: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 's'");
+  CHECK_THROWS_WITH(client.BatchCall(r), "invalid JSON response from server: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 's'");
 }

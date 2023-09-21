@@ -5,8 +5,8 @@
 
 TEST_CASE_FIXTURE(IntegrationTest, "warehouse_test") {
   WarehouseServer app;
-  rpcServer.Add("GetProduct", GetHandle(&WarehouseServer::GetProduct, app));
-  rpcServer.Add("AddProduct", GetHandle(&WarehouseServer::AddProduct, app));
+  rpcServer.Add("GetProduct", GetHandle("GetProduct", {"id"}, &WarehouseServer::GetProduct, app));
+  rpcServer.Add("AddProduct", GetHandle("AddProduct", {"p"}, &WarehouseServer::AddProduct, app));
 
   Product p;
   p.id = "0xff";

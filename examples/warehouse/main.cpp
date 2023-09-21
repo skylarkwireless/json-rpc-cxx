@@ -50,9 +50,9 @@ int main() {
 
   // Bindings
   WarehouseServer app;
-  rpcServer.Add("GetProduct", GetHandle(&WarehouseServer::GetProduct, app), {"id"});
-  rpcServer.Add("AddProduct", GetHandle(&WarehouseServer::AddProduct, app), {"product"});
-  rpcServer.Add("AllProducts", GetHandle(&WarehouseServer::AllProducts, app), {});
+  rpcServer.Add("GetProduct", GetHandle("GetProduct", {"id"}, &WarehouseServer::GetProduct, app), {"id"});
+  rpcServer.Add("AddProduct", GetHandle("AddProduct", {"product"}, &WarehouseServer::AddProduct, app), {"product"});
+  rpcServer.Add("AllProducts", GetHandle("AllProducts", {}, &WarehouseServer::AllProducts, app), {});
 
   cout << "Running in-memory example" << "\n";
   InMemoryConnector inMemoryConnector(rpcServer);
