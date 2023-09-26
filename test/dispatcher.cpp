@@ -50,7 +50,6 @@ TEST_CASE("invoking missing named parameter") {
 TEST_CASE("invoking wrong type namedparameter") {
   Dispatcher d;
   CHECK(d.Add("some method", GetHandle("add_function", {"a", "b"}, &add_function), {"a", "b"}));
-  puts("About to fail");
   REQUIRE_THROWS_WITH(d.InvokeMethod("some method", {{"a", "asdfasdf"}, {"b", -7}}), "add_function: invalid parameter \"a\" (must be unsigned integer, but is string: \"asdfasdf\")");
   REQUIRE_THROWS_WITH(d.InvokeMethod("some method", {{"a", -10}, {"b", -7}}), "add_function: invalid parameter \"a\" (must be unsigned integer, but is integer: -10)");
 }
