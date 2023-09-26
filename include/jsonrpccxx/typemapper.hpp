@@ -2,9 +2,11 @@
 
 #include "common.hpp"
 #include "nlohmann/json.hpp"
+#include <filesystem>
 #include <functional>
 #include <limits>
 #include <map>
+#include <set>
 #include <sstream>
 #include <tuple>
 #include <utility>
@@ -25,10 +27,19 @@ namespace jsonrpccxx {
   template <typename T>
   struct type {};
 
-  template <typename T>
-  constexpr json::value_t GetType(type<std::vector<T>>) {
+  template <typename T, typename Allocator>
+  constexpr json::value_t GetType(type<std::vector<T, Allocator>>) {
     return json::value_t::array;
   }
+  template <typename T, size_t N>
+  constexpr json::value_t GetType(type<std::array<T, N>>) {
+    return json::value_t::array;
+  }
+  template <typename T, class Compare, class Allocator>
+  constexpr json::value_t GetType(type<std::set<T,Compare,Allocator>>) {
+    return json::value_t::array;
+  }
+
   template <typename T>
   constexpr json::value_t GetType(type<T>) {
     if (std::is_enum<T>::value) {
@@ -50,6 +61,7 @@ namespace jsonrpccxx {
   constexpr json::value_t GetType(type<unsigned int>) { return json::value_t::number_unsigned; }
   constexpr json::value_t GetType(type<unsigned long>) { return json::value_t::number_unsigned; }
   constexpr json::value_t GetType(type<unsigned long long>) { return json::value_t::number_unsigned; }
+  constexpr json::value_t GetType(type<std::filesystem::path>) { return json::value_t::string; }
 
   inline std::string type_name(json::value_t t) {
     switch (t) {

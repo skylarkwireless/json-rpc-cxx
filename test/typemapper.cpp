@@ -227,3 +227,11 @@ TEST_CASE("test json method handles without specific types") {
   nh(R"([3,"string"])"_json);
   nh(R"({"3": "string"})"_json);
 }
+
+TEST_CASE("test GetType() mapping") {
+  CHECK(GetType(type<filesystem::path>()) == json::value_t::string);
+  CHECK(GetType(type<vector<int>>()) == json::value_t::array);
+  CHECK(GetType(type<array<double, 10>>()) == json::value_t::array);
+  CHECK(GetType(type<array<string, 5>>()) == json::value_t::array);
+  CHECK(GetType(type<set<short>>()) == json::value_t::array);
+}
