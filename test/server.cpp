@@ -524,3 +524,37 @@ TEST_CASE("check adding metadata") {
 
   REQUIRE(!server.AddMethodMetadata("bad fcn", md));
 }
+
+TEST_CASE("check filtering methods by metadata") {
+  JsonRpc2Server server;
+
+  auto fcn = [](void){ return 0; };
+
+  constexpr auto key1 = "foo";
+  constexpr auto key2 = "bar";
+  constexpr auto value = true;
+  constexpr auto bad_value = 5;
+
+  REQUIRE(server.Add("a", "", fcn));
+  REQUIRE(server.Add("b", "", fcn));
+  REQUIRE(server.Add("c", "", fcn));
+
+  server.AddMethodMetadata("a", {{key1, value}});
+  server.AddMethodMetadata("b", {{key2, value}});
+  server.AddMethodMetadata("c", {{key1, value}, {key2, value}});
+
+  const auto key1_methods = server.FilterMethodsByMetadata({{key1, value}});
+  CHECK(key1_methods == std::vector<std::string>{"a", "c"});
+  const auto bad_key1_methods = server.FilterMethodsByMetadata({{key1, bad_value}});
+  CHECK(bad_key1_methods.empty());
+
+  const auto key2_methods = server.FilterMethodsByMetadata({{key2, value}});
+  CHECK(key2_methods == std::vector<std::string>{"b", "c"});
+  const auto bad_key2_methods = server.FilterMethodsByMetadata({{key2, bad_value}});
+  CHECK(bad_key2_methods.empty());
+
+  const auto both_keys_methods = server.FilterMethodsByMetadata({{key1, value}, {key2, value}});
+  CHECK(both_keys_methods == std::vector<std::string>{"c"});
+  const auto bad_both_keys_methods = server.FilterMethodsByMetadata({{key1, value}, {key2, bad_value}});
+  CHECK(bad_both_keys_methods.empty());
+}

@@ -331,6 +331,23 @@ namespace jsonrpccxx {
       return {};
     }
 
+    std::vector<std::string> FilterMethodsByMetadata(const nlohmann::json &filterMetadata) const {
+      std::vector<std::string> methods;
+      for (const auto &[method, methodMD]: metadatas) {
+        bool valid = true;
+
+        for (const auto &[fltrKey, fltrValue]: filterMetadata.items()) {
+          if (not valid) break;
+
+          valid &= (methodMD.contains(fltrKey) and (methodMD.value(fltrKey, nlohmann::json()) == fltrValue));
+        }
+
+        if(valid) methods.push_back(method);
+      }
+
+      return methods;
+    }
+
     JsonRpcException process_type_error(const std::string &, JsonRpcException &e) {
 /*
       if (e.Code() == -32602 && !e.Data().empty()) {
