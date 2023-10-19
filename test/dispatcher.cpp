@@ -415,3 +415,37 @@ TEST_CASE("check adding metadata") {
 
   REQUIRE(!d.AddMethodMetadata("bad fcn", md));
 }
+
+TEST_CASE("check filtering methods by metadata") {
+  Dispatcher d;
+
+  auto fcn = [](void){ return 0; };
+
+  constexpr auto key1 = "foo";
+  constexpr auto key2 = "bar";
+  constexpr auto value = true;
+  constexpr auto bad_value = 5;
+
+  REQUIRE(d.Add("a", "", fcn));
+  REQUIRE(d.Add("b", "", fcn));
+  REQUIRE(d.Add("c", "", fcn));
+
+  d.AddMethodMetadata("a", {{key1, value}});
+  d.AddMethodMetadata("b", {{key2, value}});
+  d.AddMethodMetadata("c", {{key1, value}, {key2, value}});
+
+  const auto key1_methods = d.FilterMethodsByMetadata({{key1, value}});
+  CHECK(key1_methods == std::vector<std::string>{"a", "c"});
+  const auto bad_key1_methods = d.FilterMethodsByMetadata({{key1, bad_value}});
+  CHECK(bad_key1_methods.empty());
+
+  const auto key2_methods = d.FilterMethodsByMetadata({{key2, value}});
+  CHECK(key2_methods == std::vector<std::string>{"b", "c"});
+  const auto bad_key2_methods = d.FilterMethodsByMetadata({{key2, bad_value}});
+  CHECK(bad_key2_methods.empty());
+
+  const auto both_keys_methods = d.FilterMethodsByMetadata({{key1, value}, {key2, value}});
+  CHECK(both_keys_methods == std::vector<std::string>{"c"});
+  const auto bad_both_keys_methods = d.FilterMethodsByMetadata({{key1, value}, {key2, bad_value}});
+  CHECK(bad_both_keys_methods.empty());
+}

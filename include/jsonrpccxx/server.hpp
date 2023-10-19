@@ -198,6 +198,10 @@ namespace jsonrpccxx {
       return dispatcher.MethodParamDocstrings(name);
     }
 
+    inline std::vector<std::string> FilterMethodsByMetadata(const nlohmann::json &filterMetadata) const {
+      return dispatcher.FilterMethodsByMetadata(filterMetadata);
+    }
+
   protected:
     Dispatcher dispatcher;
   };
